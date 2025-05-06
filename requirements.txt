@@ -1,0 +1,8 @@
+torch
+transformers
+datasets
+trl
+comet_ml
+python-dotenv
+unsloth
+huggingface_hub
