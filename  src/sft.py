@@ -3,6 +3,7 @@ import comet_ml
 from dotenv import load_dotenv
 load_dotenv()
 import torch
+from unsloth.chat_templates import get_chat_template
 
 from unsloth import FastLanguageModel
 from unsloth import is_bfloat16_supported
@@ -12,14 +13,15 @@ from datasets import load_dataset
 from trl import SFTTrainer
 from transformers import TrainingArguments
 
-
-comet_ml.login(project_name="unsloth-finetune")
-
-
+os.environ["COMET_API_KEY"] = os.getenv("COMET_API_KEY")
 os.environ["COMET_PROJECT_NAME"] = "medqwen3-finetune"  
 os.environ["COMET_LOG_ASSETS"] = "True"
 login(token=os.getenv("HUGGINGFACE_API_KEY"))
 
+comet_ml.login(api_key=os.getenv("COMET_API_KEY"), project_name="medqwen3-finetune")
+
+
+# HYPERPARAMETERS
 max_seq_length = 2048
 dtype = None
 load_in_4bit = False
@@ -28,6 +30,7 @@ full_finetuning = True
 model_name = "ntkhoi/MedQwen3-4B"
 my_huggingface_id = "ntkhoi/MedQwen3-4B-finetuned"
 
+# MODEL & TOKENIZER
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name = model_name,
     max_seq_length = max_seq_length,
@@ -37,11 +40,18 @@ model, tokenizer = FastLanguageModel.from_pretrained(
     full_finetuning = full_finetuning,
 )
 
+tokenizer = get_chat_template(
+    tokenizer,
+    chat_template = "qwen2.5",
+)
 
+# CHAT TEMPLATE
 def apply_chat_template(example):
+
     messages = [
-        {'role': 'user', 'content': example['input']},
-        {'role': 'assistant', 'content': example['response']}
+        {"role": "system", "content": "Bạn là một trợ lý hữu ích, tôn trọng và trung thực. Luôn trả lời một cách hữu ích nhất có thể trong khi vẫn an toàn. Câu trả lời của bạn không được bao gồm bất kỳ nội dung có hại, phi đạo đức, phân biệt chủng tộc, phân biệt giới tính, độc hại, nguy hiểm hoặc bất hợp pháp. Hãy đảm bảo rằng câu trả lời của bạn mang tính chất tích cực và không thiên vị về mặt xã hội.\n\nNếu một câu hỏi không có ý nghĩa gì hoặc không mạch lạc về mặt thực tế, hãy giải thích lý do thay vì trả lời điều gì đó không chính xác. Nếu bạn không biết câu trả lời cho một câu hỏi, vui lòng không chia sẻ thông tin sai lệch."},
+        {"role": "user", "content": example["question"]},
+        {"role": "assistant", "content": example["answer"]}
     ]
 
     chat_format = tokenizer.apply_chat_template(messages, tokenize=False)
@@ -49,12 +59,13 @@ def apply_chat_template(example):
         'text': chat_format
     }
 
+# DATASET
 train_ds = load_dataset("tmnam20/ViMedAQA", split='train')
-train_ds = train_ds.map(apply_chat_template, remove_columns=dataset.features)
+train_ds = train_ds.map(apply_chat_template, remove_columns=train_ds.features)
 test_ds = load_dataset("tmnam20/ViMedAQA", split='validation')
-test_ds = train_ds.map(apply_chat_template, remove_columns=dataset.features)
+test_ds = test_ds.map(apply_chat_template, remove_columns=test_ds.features)
 
-
+# CONFIGURE TRAINER
 trainer = SFTTrainer(
     model = model,
     tokenizer = tokenizer,
@@ -65,13 +76,13 @@ trainer = SFTTrainer(
     dataset_num_proc = 2,
     packing = True,
     args = TrainingArguments(
-        per_device_train_batch_size = 16,
+        per_device_train_batch_size = 32,
         gradient_accumulation_steps = 1,
         warmup_ratio = 0.1,
-        num_train_epochs = 2,
-        save_total_limit=3,
+        num_train_epochs = 1,
+        # save_total_limit=3,
         eval_steps = 100,
-        learning_rate = 2e-4,
+        learning_rate = 2e-5,
         fp16 = not is_bfloat16_supported(),
         bf16 = is_bfloat16_supported(),
         logging_steps = 10,
@@ -84,6 +95,7 @@ trainer = SFTTrainer(
     ),
 )
 
+# TRAINING
 trainer_stats = trainer.train()
 
 model.save_pretrained("./trained_model/")
