@@ -1,0 +1,36 @@
+model_args:
+  name: "unsloth/Qwen3-4B-Base"
+  max_seq_length: 4096
+  dtype: null  
+  load_in_4bit: False
+  full_finetuning: True
+
+datasets:
+  sources:
+    ntkhoi/data-pretrain: 1 #0.005 # 0.5% sampled
+  splits: ["train", "validation"]
+  preprocessing:
+    num_proc: 2
+
+
+training_args:
+  per_device_train_batch_size: 16
+  per_device_eval_batch_size: 8
+  gradient_accumulation_steps: 2
+  warmup_ratio: 0.1
+  num_train_epochs: 1
+  fp16: true  # This should be set dynamically based on hardware in code
+  bf16: false # This too
+  logging_steps: 1
+  optim: "adamw_torch_fused"
+  learning_rate: 2e-5
+  weight_decay: 1e-4
+  logging_steps: 100
+  lr_scheduler_type: "cosine"
+  seed: 3407
+  output_dir: "outputs/archive_model"
+  report_to: ["comet_ml"]
+
+artifacts:
+  trained_model_path: outputs/trained_model
+  model_hub_id: "ntkhoi/qwen3-4b-sft"

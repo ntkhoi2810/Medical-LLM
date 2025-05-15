@@ -1,9 +1,9 @@
 import os 
 import comet_ml
-
+from comet_ml import Experiment
+import argparse
+from loguru import logger
 from dotenv import load_dotenv
-
-load_dotenv()
 
 import torch
 
@@ -15,94 +15,117 @@ from datasets import load_dataset
 from trl import SFTTrainer
 from transformers import TrainingArguments, DataCollatorForLanguageModeling
 
-os.environ["COMET_LOG_ASSETS"] = "True"
-login(token=os.getenv("HF_TOKEN"))
+from src.utils import load_yaml_config
 
-comet_ml.login(api_key=os.getenv("COMET_API_KEY"), project_name="medqwen3-finetune")
+def training_pipeline(config_path: str):
+    """Training pipeline for continual pretraining."""
 
-# MODEL & HUGGINGFACE ID
-MODEL_NAME = "hf_id/name_model"
-MY_HUGGINGFACE_ID = "hf_id/name_repo"
+    if not os.path.exists(config_path):
+        logger.error(f"Config file {config_path} does not exist.")
+        raise FileNotFoundError(f"Config file {config_path} does not exist.")
 
-# MODEL CONFIGS
-MAX_SEQ_LENGTH = 4096
-DTYPE = None
-LOAD_IN_4BIT = False
-FULL_FINETUNING = True
+    load_dotenv()
+    # Load config
+    config = load_yaml_config(config_path)
+    os.environ["COMET_LOG_ASSETS"] = "True"
+    experiment = Experiment(
+        api_key=os.getenv("COMET_API_KEY"),
+        project_name="medqwen3-continual-pretraining",
+    )
 
-# MODEL & TOKENIZER
-model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name = MODEL_NAME,
-    max_seq_length = MAX_SEQ_LENGTH,
-    dtype = DTYPE,
-    load_in_4bit = LOAD_IN_4BIT,
-    full_finetuning = FULL_FINETUNING,
-)
+    HF_TOKEN = os.getenv("HF_TOKEN")
+    if not HF_TOKEN:
+        logger.error("HF_TOKEN is not set.")
+        raise ValueError("HF_TOKEN is not set.")
 
-# DATASET
-dataset = load_dataset("codin-research/pretrain-dataset", split="train")
-
-# PROMPTING
-medical_prompt = """Bệnh học Việt Nam
-### Chủ đề: {}
-
-### Nội dung:
-{}"""
-
-EOS_TOKEN = tokenizer.eos_token # Must add EOS_TOKEN
-def formatting_prompts_func(examples):
-    titles = examples["title"]
-    texts  = examples["content"]
-    outputs = []
-    for title, text in zip(titles, texts):
-        # Must add EOS_TOKEN, otherwise your generation will go on forever!
-        text = medical_prompt.format(title, text) + EOS_TOKEN
-        outputs.append(text)
-    return {"text" : outputs}
-
-
-dataset = dataset.map(formatting_prompts_func, batched = True)
-
-# DATA COLLATOR
-data_collator = DataCollatorForLanguageModeling(
-    tokenizer = tokenizer,
-    mlm = False,
-)
-
-# TRAINING ARGUMENTS
-trainer = SFTTrainer(
-    model = model,
-    tokenizer = tokenizer,
-    train_dataset = dataset,
-    dataset_text_field = "text",
-    max_seq_length = max_seq_length,
-    data_collator = data_collator,
-    dataset_num_proc = 4,
-    packing = False, # Can make training 5x faster for short sequences.
+    login(token=HF_TOKEN)
     
-    args = TrainingArguments(
-        per_device_train_batch_size = 8,
-        gradient_accumulation_steps = 2,
-        
-        num_train_epochs = 1,
-        warmup_ratio = 0.1,
-        
-        learning_rate = 2e-5,
-        embedding_learning_rate = 1e-5,
-        weight_decay = 1e-4,
-        logging_steps = 100,
+    # MODEL CONFIGS
+    model_name = config["model_args"]["name"]
+    max_seq_length = config["model_args"]["max_seq_length"]
+    dtype = config["model_args"]["dtype"]
+    load_in_4bit = config["model_args"]["load_in_4bit"]
+    full_finetuning = config["model_args"]["full_finetuning"]
 
+    # MODEL & TOKENIZER
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name = model_name,
+        max_seq_length = max_seq_length,
+        dtype = dtype,
+        load_in_4bit = load_in_4bit,
+        full_finetuning = full_finetuning,
+    )
+
+    train_dataset = load_dataset(
+        config["datasets"]["sources"],
+        split = config["datasets"]["splits"],
+    )
+
+    # PROMPTING
+    medical_prompt = """### Chủ đề: {}
+    
+    ### Nội dung:
+    {}"""
+
+    EOS_TOKEN = tokenizer.eos_token # Must add EOS_TOKEN
+    
+    def formatting_prompts_func(examples):
+        titles = examples["title"]
+        texts  = examples["content"]
+        outputs = []
+        for title, text in zip(titles, texts):
+            # Must add EOS_TOKEN, otherwise your generation will go on forever!
+            text = medical_prompt.format(title, text) + EOS_TOKEN
+            outputs.append(text)
+        return {"text" : outputs}
+    
+    train_dataset = train_dataset.map(formatting_prompts_func, batched = True)
+
+    # DATA COLLATOR
+    data_collator = DataCollatorForLanguageModeling(
+        tokenizer = tokenizer,
+        mlm = False,
+    )
+
+    trainer = SFTTrainer(
+        model = model,
+        tokenizer = tokenizer,
+        train_dataset = train_dataset,
+        dataset_text_field = "text",
+        max_seq_length = max_seq_length,
+        data_collator = data_collator,
+        dataset_num_proc = config["datasets"]["preprocessing"]["num_proc"],
+        packing = True,
+    )
+    # TRAINING ARGUMENTS CONFIGS
+    training_args = TrainingArguments(
+        per_device_train_batch_size = config["training_args"]["per_device_train_batch_size"],
+        gradient_accumulation_steps = config["training_args"]["gradient_accumulation_steps"],
+        num_train_epochs = config["training_args"]["num_train_epochs"],
+        warmup_ratio = config["training_args"]["warmup_ratio"],
+        
+        learning_rate = config["training_args"]["learning_rate"],
+        embedding_learning_rate = config["training_args"]["embedding_learning_rate"],
+        weight_decay = config["training_args"]["weight_decay"],
+        logging_steps = config["training_args"]["logging_steps"],
+        
         fp16 = not is_bfloat16_supported(),
         bf16 = is_bfloat16_supported(),
-        optim = "adamw_torch_fused",
-        lr_scheduler_type = "cosine",
-        seed = 3407,
-        output_dir = "./outputs",
-        report_to = ["comet_ml"], # Use this for WandB etc
-    ),
-)
+        
+        optim = config["training_args"]["optim"],
+        lr_scheduler_type = config["training_args"]["lr_scheduler_type"],
+        seed = config["training_args"]["seed"],
+        output_dir = config["training_args"]["output_dir"],
+        report_to = config["training_args"]["report_to"],
+    )
 
-trainer_stats = trainer.train()
+    trainer = trainer.train()
 
-model.push_to_hub(MY_HUGGINGFACE_ID)
-tokenizer.push_to_hub(MY_HUGGINGFACE_ID)
+    model.push_to_hub(config["artifacts"]["model_hub_id"])
+    tokenizer.push_to_hub(config["artifacts"]["model_hub_id"])
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_path", type=str, required=True)
+    args = parser.parse_args()
+    training_pipeline(args.config_path)
