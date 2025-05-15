@@ -21,23 +21,23 @@ login(token=os.getenv("HUGGINGFACE_API_KEY"))
 comet_ml.login(api_key=os.getenv("COMET_API_KEY"), project_name="medqwen3-finetune")
 
 
-# HYPERPARAMETERS
-max_seq_length = 2048
-dtype = None
-load_in_4bit = False
-load_in_8bit = False
-full_finetuning = True
-model_name = "ntkhoi/MedQwen3-4B"
-my_huggingface_id = "ntkhoi/MedQwen3-4B-finetuned"
+# MODEL & HUGGINGFACE ID
+MODEL_NAME = "hf_id/name_model"
+MY_HUGGINGFACE_ID = "hf_id/name_repo"
+
+# MODEL CONFIGS
+MAX_SEQ_LENGTH = 4096
+DTYPE = None
+LOAD_IN_4BIT = False
+FULL_FINETUNING = True
 
 # MODEL & TOKENIZER
 model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name = model_name,
-    max_seq_length = max_seq_length,
-    dtype = dtype,
-    load_in_4bit = load_in_4bit,
-    load_in_8bit = load_in_8bit,
-    full_finetuning = full_finetuning,
+    model_name = MODEL_NAME,
+    max_seq_length = MAX_SEQ_LENGTH,
+    dtype = DTYPE,
+    load_in_4bit = LOAD_IN_4BIT,
+    full_finetuning = FULL_FINETUNING,
 )
 
 tokenizer = get_chat_template(
@@ -49,9 +49,27 @@ tokenizer = get_chat_template(
 def apply_chat_template(example):
 
     messages = [
-        {"role": "system", "content": "Bạn là một trợ lý hữu ích, tôn trọng và trung thực. Luôn trả lời một cách hữu ích nhất có thể trong khi vẫn an toàn. Câu trả lời của bạn không được bao gồm bất kỳ nội dung có hại, phi đạo đức, phân biệt chủng tộc, phân biệt giới tính, độc hại, nguy hiểm hoặc bất hợp pháp. Hãy đảm bảo rằng câu trả lời của bạn mang tính chất tích cực và không thiên vị về mặt xã hội.\n\nNếu một câu hỏi không có ý nghĩa gì hoặc không mạch lạc về mặt thực tế, hãy giải thích lý do thay vì trả lời điều gì đó không chính xác. Nếu bạn không biết câu trả lời cho một câu hỏi, vui lòng không chia sẻ thông tin sai lệch."},
-        {"role": "user", "content": example["question"]},
-        {"role": "assistant", "content": example["answer"]}
+        {
+            "role": "system", 
+            "content": """
+                Bạn là trợ lý ảo chuyên ngành Y tế tiếng Việt. Nhiệm vụ của bạn:
+                1. Cung cấp thông tin y khoa chính xác, cập nhật, kèm nguồn tham khảo rõ ràng.
+                2. Dùng thuật ngữ chuyên ngành chính xác, đồng thời giải thích dễ hiểu khi cần.
+                3. Tuân thủ chuẩn mực đạo đức và bảo mật thông tin cá nhân.
+                4. Từ chối hoặc cảnh báo khi:
+                   - Người dùng yêu cầu chẩn đoán, kê đơn, điều trị thay thế vai trò bác sĩ.
+                   - Đề cập thông tin nhạy cảm về bệnh nhân cụ thể.
+                5. Nếu không đủ dữ liệu hoặc không chắc chắn, phản hồi:
+                   “Tôi xin lỗi, tôi không đủ thông tin để đưa ra nhận định chính xác. Vui lòng tham khảo ý kiến bác sĩ chuyên môn.”
+                6. Luôn khuyến khích tham vấn bác sĩ hoặc chuyên gia y tế khi cần.
+                """
+        },
+        {
+            "role": "user", 
+            "content": example["question"]},
+        {
+            "role": "assistant", 
+            "content": example["answer"]}
     ]
 
     chat_format = tokenizer.apply_chat_template(messages, tokenize=False)
@@ -77,7 +95,7 @@ trainer = SFTTrainer(
     packing = True,
     args = TrainingArguments(
         per_device_train_batch_size = 32,
-        gradient_accumulation_steps = 1,
+        gradient_accumulation_steps = 2,
         warmup_ratio = 0.1,
         num_train_epochs = 1,
         # save_total_limit=3,
@@ -100,5 +118,5 @@ trainer_stats = trainer.train()
 
 model.save_pretrained("./trained_model/")
 
-model.push_to_hub(my_huggingface_id)
-tokenizer.push_to_hub(my_huggingface_id)
+model.push_to_hub(MY_HUGGINGFACE_ID)
+tokenizer.push_to_hub(MY_HUGGINGFACE_ID)
