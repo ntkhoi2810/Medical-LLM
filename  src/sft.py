@@ -13,6 +13,8 @@ from datasets import load_dataset
 from trl import SFTTrainer
 from transformers import TrainingArguments
 
+from src.utils import load_yaml_config
+
 def sft_pipeline(config_path: str):
     """Finetune the model."""
 
