@@ -125,9 +125,9 @@ def sft_pipeline(config_path: str):
         num_train_epochs = config["training_args"]["num_train_epochs"],
         warmup_ratio = config["training_args"]["warmup_ratio"],
         
-        learning_rate = config["training_args"]["learning_rate"],
-        embedding_learning_rate = config["training_args"]["embedding_learning_rate"],
-        weight_decay = config["training_args"]["weight_decay"],
+        learning_rate = float(config["training_args"]["learning_rate"]),
+        # embedding_learning_rate = config["training_args"]["embedding_learning_rate"],
+        weight_decay = float(config["training_args"]["weight_decay"]),
         logging_steps = config["training_args"]["logging_steps"],
         
         fp16 = not is_bfloat16_supported(),

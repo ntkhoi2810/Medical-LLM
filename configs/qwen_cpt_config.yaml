@@ -1,7 +1,7 @@
 model_args:
   name: "unsloth/Qwen3-0.6B-Base"
   max_seq_length: 4096
-  dtype: None
+  dtype: null # None
   load_in_4bit: False
   full_finetuning: True
 
@@ -22,8 +22,9 @@ training_args:
   logging_steps: 1
   optim: "adamw_torch_fused"
   learning_rate: 2e-5
+  embedding_learning_rate: 2e-5
   weight_decay: 1e-4
-  logging_steps: 100
+  logging_steps: 50
   lr_scheduler_type: "cosine"
   seed: 3407
   output_dir: "outputs/archive_model"
