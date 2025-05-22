@@ -13,7 +13,7 @@ from unsloth import is_bfloat16_supported
 from huggingface_hub import login
 from datasets import load_dataset
 from trl import SFTTrainer
-from transformers import TrainingArguments, DataCollatorForLanguageModeling
+from transformers import TrainingArguments, DataCollatorForLanguageModeling, AutoTokenizer, AutoModelForCausalLM
 
 from src.utils import load_yaml_config
 
@@ -41,20 +41,22 @@ def training_pipeline(config_path: str):
     login(token=HF_TOKEN)
     
     # MODEL CONFIGS
-    model_name = config["model_args"]["name"]
-    max_seq_length = config["model_args"]["max_seq_length"]
-    dtype = config["model_args"]["dtype"]
-    load_in_4bit = config["model_args"]["load_in_4bit"]
-    full_finetuning = config["model_args"]["full_finetuning"]
+    # model_name = config["model_args"]["name"]
+    # max_seq_length = config["model_args"]["max_seq_length"]
+    # dtype = config["model_args"]["dtype"]
+    # load_in_4bit = config["model_args"]["load_in_4bit"]
+    # full_finetuning = config["model_args"]["full_finetuning"]
 
     # MODEL & TOKENIZER
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name = model_name,
-        max_seq_length = max_seq_length,
-        dtype = dtype,
-        load_in_4bit = load_in_4bit,
-        full_finetuning = full_finetuning,
-    )
+    # model, tokenizer = FastLanguageModel.from_pretrained(
+    #     model_name = model_name,
+    #     max_seq_length = max_seq_length,
+    #     dtype = dtype,
+    #     load_in_4bit = load_in_4bit,
+    #     full_finetuning = full_finetuning,
+    # )
+    tokenizer = AutoTokenizer.from_pretrained(config["model_args"]["name"])
+    model = AutoModelForCausalLM.from_pretrained(config["model_args"]["name"])
 
     train_dataset = load_dataset(
         config["datasets"]["sources"],
@@ -105,7 +107,7 @@ def training_pipeline(config_path: str):
         warmup_ratio = config["training_args"]["warmup_ratio"],
         
         learning_rate = float(config["training_args"]["learning_rate"]),
-        embedding_learning_rate = float(config["training_args"]["embedding_learning_rate"]),
+        # embedding_learning_rate = float(config["training_args"]["embedding_learning_rate"]),
         weight_decay = float(config["training_args"]["weight_decay"]),
         logging_steps = config["training_args"]["logging_steps"],
         
@@ -117,6 +119,7 @@ def training_pipeline(config_path: str):
         seed = config["training_args"]["seed"],
         output_dir = config["training_args"]["output_dir"],
         report_to = config["training_args"]["report_to"],
+        deepspeed = "../configs/ds_config_zero3.json",
     )
 
     trainer = trainer.train()

@@ -1,5 +1,5 @@
 model_args:
-  name: "unsloth/Qwen3-0.6B-Base"
+  name: "Qwen/Qwen3-1.7B-Base"
   max_seq_length: 4096
   dtype: null # None
   load_in_4bit: False
