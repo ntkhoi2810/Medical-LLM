@@ -1,24 +1,23 @@
 model_args:
-  name: "Qwen/Qwen3-1.7B-Base"
-  max_seq_length: 4096
+  name: "Qwen/Qwen3-0.6B-Base"
+  max_seq_length: 1024
   dtype: null # None
   load_in_4bit: False
   full_finetuning: True
 
 datasets:
-  sources:
-    ntkhoi/data-pretrain: 1 #0.005 # 0.5% sampled
+  sources: codin-research/youmed-pretrain #0.005 # 0.5% sampled
   splits: ["train"]
   preprocessing:
     num_proc: 4
 
 training_args:
-  per_device_train_batch_size: 16
-  gradient_accumulation_steps: 2
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 1
   warmup_ratio: 0.1
   num_train_epochs: 1
-  fp16: true  # This should be set dynamically based on hardware in code
-  bf16: false # This too
+  # fp16: true  # This should be set dynamically based on hardware in code
+  # bf16: false # This too
   logging_steps: 1
   optim: "adamw_torch_fused"
   learning_rate: 2.0e-5
