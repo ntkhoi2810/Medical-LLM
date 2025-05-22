@@ -21,9 +21,9 @@ training_args:
   bf16: false # This too
   logging_steps: 1
   optim: "adamw_torch_fused"
-  learning_rate: 2e-5
-  embedding_learning_rate: 2e-5
-  weight_decay: 1e-4
+  learning_rate: 2.0e-5
+  # embedding_learning_rate: 2e-5
+  weight_decay: 1.0e-4
   logging_steps: 50
   lr_scheduler_type: "cosine"
   seed: 3407
@@ -32,4 +32,4 @@ training_args:
 
 artifacts:
   trained_model_path: outputs/trained_model
-  model_hub_id: "ntkhoi/qwen3-0.6b-cpt"
+  model_hub_id: "ntkhoi/qwen3-1.7B-cpt"

@@ -81,7 +81,7 @@ def training_pipeline(config_path: str):
             outputs.append(text)
         return {"text" : outputs}
     
-    train_dataset = train_dataset.map(formatting_prompts_func, batched = True)
+    train_dataset = train_dataset.map(formatting_prompts_func, batched = True) 
 
     # DATA COLLATOR
     data_collator = DataCollatorForLanguageModeling(
