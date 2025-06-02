@@ -15,7 +15,7 @@ from datasets import load_dataset
 from trl import SFTTrainer
 from transformers import TrainingArguments, DataCollatorForLanguageModeling
 
-from src.utils import load_yaml_config
+from utils import load_yaml_config
 
 def training_pipeline(config_path: str):
     """Training pipeline for continual pretraining."""
@@ -61,26 +61,6 @@ def training_pipeline(config_path: str):
         split = config["datasets"]["splits"],
     )
 
-    # PROMPTING
-    medical_prompt = """### Chủ đề: {}
-    
-    ### Nội dung:
-    {}"""
-
-    EOS_TOKEN = tokenizer.eos_token # Must add EOS_TOKEN
-    
-    def formatting_prompts_func(examples):
-        titles = examples["title"]
-        texts  = examples["content"]
-        outputs = []
-        for title, text in zip(titles, texts):
-            # Must add EOS_TOKEN, otherwise your generation will go on forever!
-            text = medical_prompt.format(title, text) + EOS_TOKEN
-            outputs.append(text)
-        return {"text" : outputs}
-    
-    train_dataset = train_dataset.map(formatting_prompts_func, batched = True)
-
     # DATA COLLATOR
     data_collator = DataCollatorForLanguageModeling(
         tokenizer = tokenizer,
@@ -96,27 +76,27 @@ def training_pipeline(config_path: str):
         data_collator = data_collator,
         dataset_num_proc = config["datasets"]["preprocessing"]["num_proc"],
         packing = True,
-    )
-    # TRAINING ARGUMENTS CONFIGS
-    training_args = TrainingArguments(
-        per_device_train_batch_size = config["training_args"]["per_device_train_batch_size"],
-        gradient_accumulation_steps = config["training_args"]["gradient_accumulation_steps"],
-        num_train_epochs = config["training_args"]["num_train_epochs"],
-        warmup_ratio = config["training_args"]["warmup_ratio"],
-        
-        learning_rate = float(config["training_args"]["learning_rate"]),
-        embedding_learning_rate = float(config["training_args"]["embedding_learning_rate"]),
-        weight_decay = float(config["training_args"]["weight_decay"]),
-        logging_steps = config["training_args"]["logging_steps"],
-        
-        fp16 = not is_bfloat16_supported(),
-        bf16 = is_bfloat16_supported(),
-        
-        optim = config["training_args"]["optim"],
-        lr_scheduler_type = config["training_args"]["lr_scheduler_type"],
-        seed = config["training_args"]["seed"],
-        output_dir = config["training_args"]["output_dir"],
-        report_to = config["training_args"]["report_to"],
+        # TRAINING ARGUMENTS CONFIGS
+        training_args = TrainingArguments(
+            per_device_train_batch_size = config["training_args"]["per_device_train_batch_size"],
+            gradient_accumulation_steps = config["training_args"]["gradient_accumulation_steps"],
+            num_train_epochs = config["training_args"]["num_train_epochs"],
+            warmup_ratio = config["training_args"]["warmup_ratio"],
+
+            learning_rate = float(config["training_args"]["learning_rate"]),
+            # embedding_learning_rate = float(config["training_args"]["embedding_learning_rate"]),
+            weight_decay = float(config["training_args"]["weight_decay"]),
+            logging_steps = config["training_args"]["logging_steps"],
+
+            fp16 = not is_bfloat16_supported(),
+            bf16 = is_bfloat16_supported(),
+
+            optim = config["training_args"]["optim"],
+            lr_scheduler_type = config["training_args"]["lr_scheduler_type"],
+            seed = config["training_args"]["seed"],
+            output_dir = config["training_args"]["output_dir"],
+            report_to = config["training_args"]["report_to"],
+        )
     )
 
     trainer = trainer.train()

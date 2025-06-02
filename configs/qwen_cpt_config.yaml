@@ -1,30 +1,28 @@
 model_args:
-  name: "unsloth/Qwen3-0.6B-Base"
+  name: "unsloth/Qwen3-4B-Base"
   max_seq_length: 4096
   dtype: null # None
   load_in_4bit: False
   full_finetuning: True
 
 datasets:
-  sources:
-    ntkhoi/data-pretrain: 1 #0.005 # 0.5% sampled
-  splits: ["train"]
+  sources: "codin-research/pretrain-data"
+  splits: "train"
   preprocessing:
     num_proc: 4
 
 training_args:
-  per_device_train_batch_size: 16
+  per_device_train_batch_size: 8
   gradient_accumulation_steps: 2
   warmup_ratio: 0.1
   num_train_epochs: 1
   fp16: true  # This should be set dynamically based on hardware in code
   bf16: false # This too
-  logging_steps: 1
+  logging_steps: 10
   optim: "adamw_torch_fused"
   learning_rate: 2e-5
   embedding_learning_rate: 2e-5
   weight_decay: 1e-4
-  logging_steps: 50
   lr_scheduler_type: "cosine"
   seed: 3407
   output_dir: "outputs/archive_model"
@@ -32,4 +30,4 @@ training_args:
 
 artifacts:
   trained_model_path: outputs/trained_model
-  model_hub_id: "ntkhoi/qwen3-0.6b-cpt"
+  model_hub_id: "ntkhoi/qwen3-4b-cpt"
