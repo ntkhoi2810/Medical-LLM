@@ -4,7 +4,7 @@ from comet_ml import Experiment
 import argparse
 from loguru import logger
 from dotenv import load_dotenv
-
+import logging
 import torch
 
 from unsloth import FastLanguageModel
@@ -12,10 +12,21 @@ from unsloth import is_bfloat16_supported
 
 from huggingface_hub import login
 from datasets import load_dataset
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 from transformers import TrainingArguments, DataCollatorForLanguageModeling
 
 from utils import load_yaml_config
+
+logger = logging.getLogger("transformers")
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler("logs/continual_pretraining.log")
+file_handler.setLevel(logging.INFO)
+
+formatter = logging.Formatter("%(asctime)s — %(name)s — %(levelname)s — %(message)s",
+                              datefmt="%Y-%m-%d %H:%M:%S")
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 def training_pipeline(config_path: str):
     """Training pipeline for continual pretraining."""
@@ -71,13 +82,11 @@ def training_pipeline(config_path: str):
         model = model,
         tokenizer = tokenizer,
         train_dataset = train_dataset,
-        dataset_text_field = "text",
-        max_seq_length = max_seq_length,
+        # dataset_text_field = "text",
         data_collator = data_collator,
-        dataset_num_proc = config["datasets"]["preprocessing"]["num_proc"],
-        packing = True,
+        
         # TRAINING ARGUMENTS CONFIGS
-        training_args = TrainingArguments(
+        args = SFTConfig(
             per_device_train_batch_size = config["training_args"]["per_device_train_batch_size"],
             gradient_accumulation_steps = config["training_args"]["gradient_accumulation_steps"],
             num_train_epochs = config["training_args"]["num_train_epochs"],
@@ -93,9 +102,14 @@ def training_pipeline(config_path: str):
 
             optim = config["training_args"]["optim"],
             lr_scheduler_type = config["training_args"]["lr_scheduler_type"],
+            lr_scheduler_kwargs = {"min_lr_rate": 0.1} if config["training_args"]["lr_scheduler_type"] == "cosine_with_min_lr" else None,
             seed = config["training_args"]["seed"],
             output_dir = config["training_args"]["output_dir"],
             report_to = config["training_args"]["report_to"],
+            
+            max_seq_length = max_seq_length,
+            dataset_num_proc = config["datasets"]["preprocessing"]["num_proc"],
+            packing = True,
         )
     )
 
