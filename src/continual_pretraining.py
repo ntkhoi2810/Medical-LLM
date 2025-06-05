@@ -4,7 +4,6 @@ from comet_ml import Experiment
 import argparse
 from loguru import logger
 from dotenv import load_dotenv
-import logging
 import torch
 
 from unsloth import FastLanguageModel
@@ -16,17 +15,6 @@ from trl import SFTTrainer, SFTConfig
 from transformers import TrainingArguments, DataCollatorForLanguageModeling
 
 from utils import load_yaml_config
-
-logger = logging.getLogger("transformers")
-logger.setLevel(logging.INFO)
-
-file_handler = logging.FileHandler("logs/continual_pretraining.log")
-file_handler.setLevel(logging.INFO)
-
-formatter = logging.Formatter("%(asctime)s — %(name)s — %(levelname)s — %(message)s",
-                              datefmt="%Y-%m-%d %H:%M:%S")
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
 
 def training_pipeline(config_path: str):
     """Training pipeline for continual pretraining."""
@@ -41,7 +29,7 @@ def training_pipeline(config_path: str):
     os.environ["COMET_LOG_ASSETS"] = "True"
     experiment = Experiment(
         api_key=os.getenv("COMET_API_KEY"),
-        project_name="medqwen3-continual-pretraining",
+        project_name="qwen3-1.7b-cpt",
     )
 
     HF_TOKEN = os.getenv("HF_TOKEN")
@@ -82,7 +70,6 @@ def training_pipeline(config_path: str):
         model = model,
         tokenizer = tokenizer,
         train_dataset = train_dataset,
-        # dataset_text_field = "text",
         data_collator = data_collator,
         
         # TRAINING ARGUMENTS CONFIGS
@@ -93,7 +80,6 @@ def training_pipeline(config_path: str):
             warmup_ratio = config["training_args"]["warmup_ratio"],
 
             learning_rate = float(config["training_args"]["learning_rate"]),
-            # embedding_learning_rate = float(config["training_args"]["embedding_learning_rate"]),
             weight_decay = float(config["training_args"]["weight_decay"]),
             logging_steps = config["training_args"]["logging_steps"],
 

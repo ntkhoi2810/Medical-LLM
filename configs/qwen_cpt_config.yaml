@@ -1,5 +1,5 @@
 model_args:
-  name: "unsloth/Qwen3-4B-Base"
+  name: "unsloth/Qwen3-1.7B-Base"
   max_seq_length: 4096
   dtype: null # None
   load_in_4bit: False
@@ -13,7 +13,7 @@ datasets:
 
 training_args:
   per_device_train_batch_size: 8
-  gradient_accumulation_steps: 2
+  gradient_accumulation_steps: 4
   warmup_ratio: 0.1
   num_train_epochs: 1
   fp16: true  # This should be set dynamically based on hardware in code
@@ -21,13 +21,13 @@ training_args:
   logging_steps: 10
   optim: "adamw_torch_fused"
   learning_rate: 2e-5
-  embedding_learning_rate: 2e-5
+  embedding_learning_rate: 5e-6
   weight_decay: 1e-4
-  lr_scheduler_type: "cosine"
+  lr_scheduler_type: "cosine_with_min_lr"
   seed: 3407
   output_dir: "outputs/archive_model"
   report_to: ["comet_ml"]
 
 artifacts:
   trained_model_path: outputs/trained_model
-  model_hub_id: "ntkhoi/qwen3-4b-cpt"
+  model_hub_id: "ntkhoi/qwen3-1.7b-cpt"
