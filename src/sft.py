@@ -10,7 +10,7 @@ from unsloth import is_bfloat16_supported
 
 from huggingface_hub import login
 from datasets import load_dataset
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 from transformers import TrainingArguments
 
 from src.utils import load_yaml_config
@@ -73,16 +73,7 @@ def sft_pipeline(config_path: str):
             {
                 "role": "system", 
                 "content": """
-                    Bạn là trợ lý ảo chuyên ngành Y tế tiếng Việt. Nhiệm vụ của bạn:
-                    1. Cung cấp thông tin y khoa chính xác, cập nhật, kèm nguồn tham khảo rõ ràng.
-                    2. Dùng thuật ngữ chuyên ngành chính xác, đồng thời giải thích dễ hiểu khi cần.
-                    3. Tuân thủ chuẩn mực đạo đức và bảo mật thông tin cá nhân.
-                    4. Từ chối hoặc cảnh báo khi:
-                       - Người dùng yêu cầu chẩn đoán, kê đơn, điều trị thay thế vai trò bác sĩ.
-                       - Đề cập thông tin nhạy cảm về bệnh nhân cụ thể.
-                    5. Nếu không đủ dữ liệu hoặc không chắc chắn, phản hồi:
-                       “Tôi xin lỗi, tôi không đủ thông tin để đưa ra nhận định chính xác. Vui lòng tham khảo ý kiến bác sĩ chuyên môn.”
-                    6. Luôn khuyến khích tham vấn bác sĩ hoặc chuyên gia y tế khi cần.
+                    You are a medical assistant. Your task is to answer questions about medical topics.
                     """
             },
             {
@@ -118,7 +109,7 @@ def sft_pipeline(config_path: str):
         packing = True,
     )
     # TRAINING ARGUMENTS CONFIGS
-    training_args = TrainingArguments(
+    args = SFTConfig(
         per_device_train_batch_size = config["training_args"]["per_device_train_batch_size"],
         per_device_eval_batch_size = config["training_args"]["per_device_eval_batch_size"],
         gradient_accumulation_steps = config["training_args"]["gradient_accumulation_steps"],
