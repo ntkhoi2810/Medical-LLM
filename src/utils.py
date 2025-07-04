@@ -13,3 +13,6 @@ def load_yaml_config(path: str) -> dict:
     except Exception as e:
         logger.error(f"Error loading yaml file {path}: {e}")
         raise e
+
+def formatting_prompts_func(examples):
+    return {"text" : [example + EOS_TOKEN for example in examples["text"]]}
