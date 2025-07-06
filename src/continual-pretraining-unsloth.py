@@ -6,7 +6,7 @@ from loguru import logger
 from dotenv import load_dotenv
 import torch
 
-from unsloth import FastLanguageModel
+from unsloth import FastLanguageModel, UnslothTrainer, UnslothTrainingArguments
 from unsloth import is_bfloat16_supported
 
 from huggingface_hub import login
@@ -60,7 +60,8 @@ def training_pipeline(config_path: str):
         split = config["datasets"]["splits"],
     )
 
-    
+    train_dataset = train_dataset.train_test_split(test_size=0.01)['test']
+
 
     # DATA COLLATOR
     data_collator = DataCollatorForLanguageModeling(
@@ -68,20 +69,22 @@ def training_pipeline(config_path: str):
         mlm = False,
     )
 
-    trainer = SFTTrainer(
+    trainer = UnslothTrainer(
         model = model,
         tokenizer = tokenizer,
         train_dataset = train_dataset,
         data_collator = data_collator,
         
         # TRAINING ARGUMENTS CONFIGS
-        args = SFTConfig(
+        args = UnslothTrainingArguments(
             per_device_train_batch_size = config["training_args"]["per_device_train_batch_size"],
             gradient_accumulation_steps = config["training_args"]["gradient_accumulation_steps"],
             num_train_epochs = config["training_args"]["num_train_epochs"],
             warmup_ratio = config["training_args"]["warmup_ratio"],
 
             learning_rate = float(config["training_args"]["learning_rate"]),
+            embedding_learning_rate = 5e-6,
+
             weight_decay = float(config["training_args"]["weight_decay"]),
             logging_steps = config["training_args"]["logging_steps"],
 
