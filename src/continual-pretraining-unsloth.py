@@ -14,7 +14,7 @@ from datasets import load_dataset
 from trl import SFTTrainer, SFTConfig
 from transformers import TrainingArguments, DataCollatorForLanguageModeling
 
-from utils import load_yaml_config
+from utils import load_yaml_config, load_and_merge_datasets
 
 def training_pipeline(config_path: str):
     """Training pipeline for continual pretraining."""
@@ -55,12 +55,13 @@ def training_pipeline(config_path: str):
         full_finetuning = full_finetuning,
     )
 
-    train_dataset = load_dataset(
-        config["datasets"]["sources"],
-        split = config["datasets"]["splits"],
-    )
+    # train_dataset = load_dataset(
+    #     config["datasets"]["sources"],
+    #     split = config["datasets"]["splits"],
+    # )
+    train_dataset = load_and_merge_datasets(config)
 
-    train_dataset = train_dataset.train_test_split(test_size=0.01)['test']
+    # train_dataset = train_dataset.train_test_split(test_size=0.01)['test']
 
 
     # DATA COLLATOR
@@ -100,7 +101,7 @@ def training_pipeline(config_path: str):
             
             max_seq_length = max_seq_length,
             dataset_num_proc = config["datasets"]["preprocessing"]["num_proc"],
-            packing = True,
+            # packing = True,
         )
     )
 

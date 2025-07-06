@@ -6,10 +6,12 @@ model_args:
   full_finetuning: True
 
 datasets:
-  sources: "codin-research/vie-medical-pretrain-data"
-  splits: "train"
+  names:
+    - "codin-research/vie-medical-pretrain-data"
+    - "codin-research/vie-general-pretrain-data"
+    - "codin-research/en-general-pretrain-data"
   preprocessing:
-    num_proc: 4
+    num_proc: 16
 
 training_args:
   per_device_train_batch_size: 4
@@ -30,4 +32,4 @@ training_args:
 
 artifacts:
   trained_model_path: outputs/trained_model
-  model_hub_id: "ntkhoi/qwen3-1.7b-cpt"
+  model_hub_id: "ntkhoi/test-qwen3-1.7b-cpt"
