@@ -6,6 +6,13 @@ from loguru import logger
 from dotenv import load_dotenv
 import torch
 
+import sys
+import typing
+sys.modules['typing'].Any = typing.Any
+
+import builtins
+builtins.Any = typing.Any
+
 from unsloth import FastLanguageModel, UnslothTrainer, UnslothTrainingArguments
 from unsloth import is_bfloat16_supported
 
@@ -14,7 +21,7 @@ from datasets import load_dataset
 from trl import SFTTrainer, SFTConfig
 from transformers import TrainingArguments, DataCollatorForLanguageModeling
 
-from utils import load_yaml_config, load_and_merge_datasets
+from utils import load_yaml_config, load_and_merge_datasets, formatting_prompts_func
 
 def training_pipeline(config_path: str):
     """Training pipeline for continual pretraining."""
@@ -60,7 +67,7 @@ def training_pipeline(config_path: str):
     train_dataset = train_dataset.map(
         formatting_prompts_func,
         batched=True,
-        batch=2048,
+        batch_size=2048,
         fn_kwargs={"tokenizer": tokenizer},
     )
 
