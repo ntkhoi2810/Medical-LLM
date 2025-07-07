@@ -55,14 +55,14 @@ def training_pipeline(config_path: str):
         full_finetuning = full_finetuning,
     )
 
-    # train_dataset = load_dataset(
-    #     config["datasets"]["sources"],
-    #     split = config["datasets"]["splits"],
-    # )
+    # DATASET
     train_dataset = load_and_merge_datasets(config)
-
-    # train_dataset = train_dataset.train_test_split(test_size=0.01)['test']
-
+    train_dataset = train_dataset.map(
+        formatting_prompts_func,
+        batched=True,
+        batch=2048,
+        fn_kwargs={"tokenizer": tokenizer},
+    )
 
     # DATA COLLATOR
     data_collator = DataCollatorForLanguageModeling(
@@ -84,7 +84,7 @@ def training_pipeline(config_path: str):
             warmup_ratio = config["training_args"]["warmup_ratio"],
 
             learning_rate = float(config["training_args"]["learning_rate"]),
-            embedding_learning_rate = 5e-6,
+            embedding_learning_rate = float(config["training_args"]["embedding_learning_rate"]),
 
             weight_decay = float(config["training_args"]["weight_decay"]),
             logging_steps = config["training_args"]["logging_steps"],
@@ -95,6 +95,8 @@ def training_pipeline(config_path: str):
             optim = config["training_args"]["optim"],
             lr_scheduler_type = config["training_args"]["lr_scheduler_type"],
             lr_scheduler_kwargs = {"min_lr_rate": 0.1} if config["training_args"]["lr_scheduler_type"] == "cosine_with_min_lr" else None,
+
+            save_total_limit = config["training_args"]["save_total_limit"],
             seed = config["training_args"]["seed"],
             output_dir = config["training_args"]["output_dir"],
             report_to = config["training_args"]["report_to"],
