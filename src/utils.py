@@ -28,3 +28,25 @@ def load_and_merge_datasets(config: dict) -> datasets.Dataset:
         datasets.append(load_dataset(dataset_name, split="train"))
 
     return concatenate_datasets(datasets).shuffle(seed=3047)
+
+def apply_chat_template(example):
+
+    messages = [
+        {
+            "role": "system", 
+            "content": """
+                You are a medical assistant. Your task is to answer questions about medical topics.
+                """
+        },
+        {
+            "role": "user", 
+            "content": example["question"]},
+        {
+            "role": "assistant", 
+            "content": example["answer"]}
+    ]
+
+    chat_format = tokenizer.apply_chat_template(messages, tokenize=False)
+    return {
+        'text': chat_format
+    }

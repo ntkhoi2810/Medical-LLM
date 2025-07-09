@@ -35,7 +35,5 @@ training_args:
   save_total_limit: 5
   metric_for_best_model: "eval_loss"
   
-
 artifacts:
-  trained_model_path: outputs/trained_model
   model_hub_id: "ntkhoi/Qwen3-4B-Medical-CPT-0707"

@@ -13,7 +13,7 @@ from datasets import load_dataset
 from trl import SFTTrainer, SFTConfig
 from transformers import TrainingArguments
 
-from src.utils import load_yaml_config
+from utils import load_yaml_config, load_and_merge_datasets, apply_chat_template
 
 def sft_pipeline(config_path: str):
     """Finetune the model."""
@@ -28,7 +28,7 @@ def sft_pipeline(config_path: str):
     os.environ["COMET_LOG_ASSETS"] = "True"
     experiment = Experiment(
         api_key=os.getenv("COMET_API_KEY"),
-        project_name="medqwen3-continual-pretraining",
+        project_name="qwen3-4b-medical-cpt",
     )
 
     HF_TOKEN = os.getenv("HF_TOKEN")
@@ -54,43 +54,28 @@ def sft_pipeline(config_path: str):
         full_finetuning = full_finetuning,
     )
 
-    train_dataset = load_dataset(
-        config["datasets"]["sources"],
-        split = config["datasets"]["splits"],
-    )
-
-    eval_dataset = train_dataset["validation"]
+    dataset = load_and_merge_datasets(config)
 
     tokenizer = get_chat_template(
         tokenizer,
-        chat_template = "qwen2.5",
+        chat_template = "qwen3",
     )
 
-    # PROMPTING
-    def apply_chat_template(example):
+    dataset = dataset.map(
+        apply_chat_template,
+        batched = True,
+        fn_kwargs = {"tokenizer": tokenizer},
+        remove_columns = dataset.column_names
+    )
 
-        messages = [
-            {
-                "role": "system", 
-                "content": """
-                    You are a medical assistant. Your task is to answer questions about medical topics.
-                    """
-            },
-            {
-                "role": "user", 
-                "content": example["question"]},
-            {
-                "role": "assistant", 
-                "content": example["answer"]}
-        ]
+    dataset = dataset.train_test_split(
+        test_size=0.1,
+        seed=3047,
+    )
 
-        chat_format = tokenizer.apply_chat_template(messages, tokenize=False)
-        return {
-            'text': chat_format
-        }
+    train_dataset = dataset["train"]
+    eval_dataset = dataset["test"]
     
-    train_dataset = train_dataset.map(apply_chat_template, batched = True)
-    eval_dataset = eval_dataset.map(apply_chat_template, batched = True)
     # DATA COLLATOR
     data_collator = DataCollatorForLanguageModeling(
         tokenizer = tokenizer,
@@ -117,7 +102,6 @@ def sft_pipeline(config_path: str):
         warmup_ratio = config["training_args"]["warmup_ratio"],
         
         learning_rate = float(config["training_args"]["learning_rate"]),
-        # embedding_learning_rate = config["training_args"]["embedding_learning_rate"],
         weight_decay = float(config["training_args"]["weight_decay"]),
         logging_steps = config["training_args"]["logging_steps"],
         

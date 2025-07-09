@@ -6,31 +6,32 @@ model_args:
   full_finetuning: True
 
 datasets:
-  sources:
-    ntkhoi/data-pretrain: 1 #0.005 # 0.5% sampled
-  splits: ["train", "validation"]
+  names:
+    - "codin-research/"
   preprocessing:
-    num_proc: 2
+    num_proc: 16
 
 
 training_args:
   per_device_train_batch_size: 16
   per_device_eval_batch_size: 8
-  gradient_accumulation_steps: 2
+  gradient_accumulation_steps: 4
   warmup_ratio: 0.1
-  num_train_epochs: 1
+  num_train_epochs: 2
   fp16: true  # This should be set dynamically based on hardware in code
   bf16: false # This too
-  logging_steps: 1
   optim: "adamw_torch_fused"
-  learning_rate: 2e-5
+  learning_rate: 5e-6
   weight_decay: 1e-4
-  logging_steps: 100
+  logging_steps: 10
   lr_scheduler_type: "cosine"
   seed: 3407
-  output_dir: "outputs/archive_model"
+  save_steps: 500
+  load_best_model_at_end: True
+  save_total_limit: 5
+  metric_for_best_model: "eval_loss"
+  output_dir: "outputs/sft_model"
   report_to: ["comet_ml"]
 
 artifacts:
-  trained_model_path: outputs/trained_model
   model_hub_id: "ntkhoi/qwen3-4b-sft"
