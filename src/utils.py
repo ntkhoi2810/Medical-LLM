@@ -29,14 +29,12 @@ def load_and_merge_datasets(config: dict) -> datasets.Dataset:
 
     return concatenate_datasets(datasets).shuffle(seed=3047)
 
-def apply_chat_template(example):
+def apply_chat_template(example, tokenizer):
 
     messages = [
         {
             "role": "system", 
-            "content": """
-                You are a medical assistant. Your task is to answer questions about medical topics.
-                """
+            "content": """You are an AI assistant specialized in Vietnamese medical question answering. Your goal is to help users understand medical topics in Vietnamese accurately and safely."""
         },
         {
             "role": "user", 

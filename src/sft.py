@@ -1,10 +1,20 @@
 import os
 import comet_ml
+from comet_ml import Experiment
+import argparse
+from loguru import logger
 from dotenv import load_dotenv
 load_dotenv()
 import torch
-from unsloth.chat_templates import get_chat_template
 
+import sys
+import typing
+sys.modules['typing'].Any = typing.Any
+
+import builtins
+builtins.Any = typing.Any
+
+from unsloth.chat_templates import get_chat_template
 from unsloth import FastLanguageModel
 from unsloth import is_bfloat16_supported
 
@@ -23,7 +33,7 @@ def sft_pipeline(config_path: str):
         raise FileNotFoundError(f"Config file {config_path} does not exist.")
 
     load_dotenv()
-    # Load config
+    # LOAD CONFIG
     config = load_yaml_config(config_path)
     os.environ["COMET_LOG_ASSETS"] = "True"
     experiment = Experiment(
@@ -38,7 +48,7 @@ def sft_pipeline(config_path: str):
 
     login(token=HF_TOKEN)
 
-        # MODEL CONFIGS
+    # MODEL CONFIGS
     model_name = config["model_args"]["name"]
     max_seq_length = config["model_args"]["max_seq_length"]
     dtype = config["model_args"]["dtype"]
@@ -63,7 +73,6 @@ def sft_pipeline(config_path: str):
 
     dataset = dataset.map(
         apply_chat_template,
-        batched = True,
         fn_kwargs = {"tokenizer": tokenizer},
         remove_columns = dataset.column_names
     )
@@ -91,7 +100,7 @@ def sft_pipeline(config_path: str):
         max_seq_length = max_seq_length,
         data_collator = data_collator,
         dataset_num_proc = config["datasets"]["preprocessing"]["num_proc"],
-        packing = True,
+        # packing = True,
     )
     # TRAINING ARGUMENTS CONFIGS
     args = SFTConfig(
