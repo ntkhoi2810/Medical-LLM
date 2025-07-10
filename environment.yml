@@ -21,7 +21,7 @@ dependencies:
   - ncurses=6.5=h2d0b736_3
   - openssl=3.5.1=h7b32b05_0
   - pip=25.1.1=pyh8b19718_0
-  - python=3.10.10=he550d4f_0_cpython
+  - python=3.11=he550d4f_0_cpython
   - readline=8.2=h8c095d6_2
   - setuptools=80.9.0=pyhff2d567_0
   - tk=8.6.13=noxft_hd72426e_102
