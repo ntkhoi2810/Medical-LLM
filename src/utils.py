@@ -34,13 +34,14 @@ def apply_chat_template(example, tokenizer):
     messages = [
         {
             "role": "system", 
-            "content": """You are an AI assistant specialized in Vietnamese medical question answering. Your goal is to help users understand medical topics in Vietnamese accurately and safely."""
+            "content": """Bạn là trợ lý AI chuyên về giải đáp các câu hỏi y tế bằng tiếng Việt. Mục tiêu của bạn là giúp người dùng hiểu các chủ đề y tế một cách chính xác và an toàn.
+            Dưới đây là một hướng dẫn mô tả nhiệm vụ, kèm theo phần thông tin đầu vào để làm rõ ngữ cảnh. Viết một phản hồi phù hợp nhằm hoàn thành yêu cầu."""
         },
         {
-            "role": "user", 
-            "content": example["question"]},
+            "role": "user",
+            "content": example['instruction'] + '\n' + example["question"]},
         {
-            "role": "assistant", 
+            "role": "assistant",
             "content": example["answer"]}
     ]
 
