@@ -21,7 +21,7 @@ from unsloth import is_bfloat16_supported
 from huggingface_hub import login
 from datasets import load_dataset
 from trl import SFTTrainer, SFTConfig
-from transformers import TrainingArguments
+from transformers import TrainingArguments, DataCollatorForLanguageModeling
 
 from utils import load_yaml_config, load_and_merge_datasets, apply_chat_template
 
@@ -96,10 +96,7 @@ def sft_pipeline(config_path: str):
         tokenizer = tokenizer,
         train_dataset = train_dataset,
         eval_dataset = eval_dataset,
-        dataset_text_field = "text",
-        max_seq_length = max_seq_length,
         data_collator = data_collator,
-        dataset_num_proc = config["datasets"]["preprocessing"]["num_proc"],
         # packing = True,
     )
     # TRAINING ARGUMENTS CONFIGS
@@ -122,6 +119,9 @@ def sft_pipeline(config_path: str):
         seed = config["training_args"]["seed"],
         output_dir = config["training_args"]["output_dir"],
         report_to = config["training_args"]["report_to"],
+
+        max_seq_length = max_seq_length,
+        dataset_num_proc = config["datasets"]["preprocessing"]["num_proc"]
     )
 
     trainer = trainer.train()
