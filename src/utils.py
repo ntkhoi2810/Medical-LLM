@@ -49,3 +49,27 @@ def apply_chat_template(example, tokenizer):
     return {
         'text': chat_format
     }
+
+def format_dpo_dataset(example, tokenizer):
+    rejected_messages = [
+        {
+            "role": "user",
+            "content": example['question']},
+        {
+            "role": "assistant",
+            "content": example["rejected"]}
+    ]
+
+    chosen_messages = [
+        {
+            "role": "user",
+            "content": example['question']},
+        {
+            "role": "assistant",
+            "content": example['chosen']}
+    ]
+    
+    return {
+        'rejected': tokenizer.apply_chat_template(rejected_messages, tokenize=False),
+        'chosen': tokenizer.apply_chat_template(chosen_messages, tokenize=False)
+    }

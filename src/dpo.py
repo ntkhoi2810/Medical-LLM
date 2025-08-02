@@ -22,10 +22,10 @@ PatchDPOTrainer()
 
 from huggingface_hub import login
 from datasets import load_dataset
-from trl import DPOTrainer, DPOConfig, apply_chat_template
+from trl import DPOTrainer, DPOConfig
 from transformers import DataCollatorForLanguageModeling
 
-from utils import load_yaml_config, load_and_merge_datasets
+from utils import load_yaml_config, load_and_merge_datasets, format_dpo_dataset
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
 
@@ -70,17 +70,16 @@ def dpo_pipeline(config_path: str):
 
     dataset = load_and_merge_datasets(config)
 
-    tokenizer = get_chat_template(
-        tokenizer,
-        chat_template = "qwen3",
-    )
+    # tokenizer = get_chat_template(
+    #     tokenizer,
+    #     chat_template = "qwen3",
+    # )
 
     dataset = dataset.map(
-        apply_chat_template,
-        fn_kwargs = {"tokenizer": tokenizer, "task": "dpo"},
+        format_dpo_dataset,
+        fn_kwargs = {"tokenizer": tokenizer},
         num_proc = 4,
         remove_columns = dataset.column_names,
-        desc = "Formatting comparisons with prompt template",
     )
 
     dataset = dataset.train_test_split(
@@ -128,7 +127,7 @@ def dpo_pipeline(config_path: str):
             output_dir = config["training_args"]["output_dir"],
             report_to = config["training_args"]["report_to"],
     
-            max_seq_length = max_seq_length,
+            max_length = max_seq_length,
             dataset_num_proc = config["datasets"]["preprocessing"]["num_proc"]
         )
     )
