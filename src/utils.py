@@ -39,10 +39,10 @@ def apply_chat_template(example, tokenizer):
         },
         {
             "role": "user",
-            "content": example['instruction'] + '\n' + example["question"]},
+            "content": str(example['instruction']) + '\n' + example["input"]},
         {
             "role": "assistant",
-            "content": example["answer"]}
+            "content": example["output"]}
     ]
 
     chat_format = tokenizer.apply_chat_template(messages, tokenize=False)
